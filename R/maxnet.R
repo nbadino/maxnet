@@ -58,7 +58,24 @@ maxnet <-
 function(p, data, f=maxnet.formula(p, data), regmult=1.0, 
          regfun=maxnet.default.regularization, addsamplestobackground=T, ...)
 {
-   if (anyNA(data)) stop("NA values in data table. Please remove them and rerun.")
+   if (anyNA(data)) {
+      for (col in names(data)) {
+        if (!is.factor(data[[col]])) {
+          bad <- !is.finite(data[[col]])
+          if (any(bad)) {
+            med <- median(data[[col]][is.finite(data[[col]])], na.rm = TRUE)
+            data[[col]][bad] <- if (is.finite(med)) med else 0
+          }
+        }
+      }
+   }
+   for (col in names(data)) {
+     if (!is.factor(data[[col]])) {
+       rng <- diff(range(data[[col]], na.rm = TRUE))
+       if (is.finite(rng) && rng < .Machine$double.eps^0.5)
+         data[[col]] <- data[[col]] + stats::rnorm(length(data[[col]]), 0, 1e-7)
+     }
+   }
    if (!is.vector(p))
        stop("p must be a vector.")
    if (addsamplestobackground) {
